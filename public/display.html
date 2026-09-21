@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live event wall</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="display-page">
+  <header class="display-header">
+    <span class="eyebrow">Live event wall</span>
+    <span class="mono" id="connection">connecting</span>
+  </header>
+  <main class="display-stage" id="display-stage">
+    <div class="empty-state"><strong>Waiting for the first share.</strong><span>Scan the event QR code to add something to the wall.</span></div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const stage = document.querySelector('#display-stage');
+    const connection = document.querySelector('#connection');
+    const socket = io();
+    const playlist = [];
+    let currentIndex = 0;
+    let showing = false;
+
+    socket.on('connect', () => connection.textContent = 'live');
+    socket.on('disconnect', () => connection.textContent = 'offline');
+    socket.on('submission:new', (submission) => {
+      addSubmission(submission);
+      if (!showing) showNext();
+    });
+
+    fetch('/api/submissions').then((response) => response.json()).then(({ submissions }) => {
+      submissions.forEach(addSubmission);
+      if (!showing) showNext();
+    });
+
+    function addSubmission(submission) {
+      if (!playlist.some((item) => item.id === submission.id)) playlist.push(submission);
+    }
+
+    function showNext() {
+      if (!playlist.length) { showing = false; return; }
+      const submission = playlist[currentIndex];
+      currentIndex = (currentIndex + 1) % playlist.length;
+      showing = true;
+      const slide = document.createElement('article');
+      slide.className = `slide ${submission.mediaUrl ? '' : 'text-only'}`;
+      slide.innerHTML = `${submission.mediaUrl ? `<div class="slide-media">${submission.mediaType === 'video' ? `<video src="${submission.mediaUrl}" autoplay muted playsinline></video>` : `<img src="${submission.mediaUrl}" alt="Participant submission">`}</div>` : ''}<div class="slide-copy"><p>${escapeHtml(submission.message || '')}</p><span class="slide-index mono">LIVE SHARE</span></div>`;
+      stage.replaceChildren(slide);
+      const duration = submission.mediaType === 'video' ? 15000 : 8000;
+      setTimeout(showNext, duration);
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+    }
+  </script>
+</body>
+</html>
