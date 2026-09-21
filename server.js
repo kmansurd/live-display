@@ -44,6 +44,7 @@ app.get('/display', (_request, response) => response.sendFile(path.join(__dirnam
 
 app.post('/api/submissions', upload.single('media'), (request, response) => {
   const message = String(request.body.message || '').trim().slice(0, 280);
+  const name = String(request.body.name || '').trim().slice(0, 60);
 
   if (!message && !request.file) {
     return response.status(400).json({ error: 'Add a message, photo, or video before sending.' });
@@ -52,6 +53,7 @@ app.post('/api/submissions', upload.single('media'), (request, response) => {
   const submission = {
     id: crypto.randomUUID(),
     message,
+    name,
     mediaUrl: request.file ? `/uploads/${request.file.filename}` : null,
     mediaType: request.file ? request.file.mimetype.split('/')[0] : null,
     createdAt: new Date().toISOString()
