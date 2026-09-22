@@ -13,6 +13,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const stage = document.querySelector('#display-stage');
+    const eventId = new URLSearchParams(window.location.search).get('event');
     const socket = io();
     const playlist = [];
     let currentIndex = 0;
@@ -20,15 +21,38 @@
     let slideTimer;
     let touchStartX = 0;
 
+    if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
+      stage.innerHTML = '<div class="empty-state"><strong>Missing event code.</strong><span>Open the display link with a valid event code.</span></div>';
+    }
+
+    socket.on('connect', () => {
+      if (eventId) socket.emit('event:join', { eventId });
+    });
+
+    socket.on('event:error', ({ error }) => {
+      stage.innerHTML = `<div class="empty-state"><strong>Unable to join event.</strong><span>${escapeHtml(error)}</span></div>`;
+    });
+
     socket.on('submission:new', (submission) => {
       addSubmission(submission);
       if (!showing) showNext();
     });
 
-    fetch('/api/submissions').then((response) => response.json()).then(({ submissions }) => {
-      submissions.forEach(addSubmission);
-      if (!showing) showNext();
-    });
+    if (eventId) {
+      fetch(`/api/submissions?event=${encodeURIComponent(eventId)}`)
+        .then(async (response) => {
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Unable to load submissions.');
+          return result;
+        })
+        .then(({ submissions }) => {
+          submissions.forEach(addSubmission);
+          if (!showing) showNext();
+        })
+        .catch((error) => {
+          stage.innerHTML = `<div class="empty-state"><strong>Unable to load event.</strong><span>${escapeHtml(error.message)}</span></div>`;
+        });
+    }
 
     function addSubmission(submission) {
       if (!playlist.some((item) => item.id === submission.id)) playlist.push(submission);

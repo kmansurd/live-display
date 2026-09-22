@@ -16,6 +16,7 @@
       <textarea id="message" name="message" maxlength="280" placeholder="What do you want everyone to see?"></textarea>
       <label class="field-label" for="name">Your name <span class="mono">optional</span></label>
       <input id="name" name="name" type="text" maxlength="60" placeholder="How should we credit you?">
+      <input id="event-id" name="eventId" type="hidden">
       <div class="upload-row">
         <label class="file-label" for="media">+ Add photo or video</label>
         <input id="media" name="media" type="file" accept="image/*,video/*">
@@ -32,6 +33,16 @@
     const fileName = document.querySelector('#file-name');
     const status = document.querySelector('#status');
     const submitButton = form.querySelector('button');
+    const eventIdInput = document.querySelector('#event-id');
+    const eventId = new URLSearchParams(window.location.search).get('event');
+
+    if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
+      submitButton.disabled = true;
+      status.className = 'status error';
+      status.textContent = 'This upload link is missing a valid event code.';
+    } else {
+      eventIdInput.value = eventId;
+    }
 
     media.addEventListener('change', () => {
       fileName.textContent = media.files[0]?.name || 'No file selected';
@@ -47,6 +58,7 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Unable to send submission.');
         form.reset();
+        eventIdInput.value = eventId;
         fileName.textContent = 'No file selected';
         status.textContent = 'On its way to the screen.';
       } catch (error) {
