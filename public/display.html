@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Live event wall</title>
+  <title>CLE Live Wall</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="display-page">
+  <header class="display-header">
+    <h1 class="display-title">CLE Live Wall</h1>
+  </header>
   <main class="display-stage" id="display-stage">
     <div class="empty-state"><strong>Waiting for the first share.</strong><span>Scan the event QR code to add something to the wall.</span></div>
   </main>
@@ -62,28 +65,96 @@
       if (!playlist.length) { showing = false; return; }
       clearTimeout(slideTimer);
       showing = true;
-      renderCarousel();
       const submission = playlist[currentIndex];
+      showSlide(currentIndex);
       currentIndex = (currentIndex + 1) % playlist.length;
       const duration = submission.mediaType === 'video' ? 15000 : 8000;
       slideTimer = setTimeout(showNext, duration);
     }
 
-    function renderCarousel() {
-      const track = document.createElement('div');
-      track.className = 'carousel-track';
-      track.style.setProperty('--active-slide', currentIndex);
+    function ensurePost() {
+      if (stage.querySelector('.ig-post')) return;
+      stage.innerHTML = `
+        <article class="ig-post">
+          <header class="ig-head">
+            <div class="ig-avatar" aria-hidden="true">CLE</div>
+            <p class="ig-account">hkust.cle.lang</p>
+          </header>
+          <div class="ig-media-window">
+            <div class="ig-track" id="ig-track"></div>
+          </div>
+          <div class="ig-dots" id="ig-dots" hidden></div>
+          <div class="ig-actions" aria-hidden="true">
+            <div class="ig-actions-left">
+              <svg viewBox="0 0 24 24"><path d="M12.1 20.3 4.5 12.7a4.8 4.8 0 0 1 6.8-6.8L12 6.6l.7-.7a4.8 4.8 0 0 1 6.8 6.8l-7.4 7.6z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.2-.7L4 20l1.7-5.1A7.5 7.5 0 1 1 20 11.5z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M21 4 10.5 14.5"/><path d="m21 4-7.2 16.2-3.3-5.7L4.8 11z"/></svg>
+            </div>
+            <svg viewBox="0 0 24 24"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-3.2L5 20V5a1 1 0 0 1 1-1z"/></svg>
+          </div>
+          <p class="ig-caption" id="ig-caption"></p>
+        </article>`;
+    }
 
-      playlist.forEach((submission, index) => {
-        const slide = document.createElement('article');
-        slide.className = `slide ${submission.mediaUrl ? '' : 'text-only'}${index === currentIndex ? ' active' : ''}`;
-        slide.innerHTML = `${submission.mediaUrl ? `${submission.name ? `<span class="slide-name">${escapeHtml(submission.name)}</span>` : ''}<div class="slide-media">${submission.mediaType === 'video' ? `<video src="${submission.mediaUrl}" muted playsinline></video>` : `<img src="${submission.mediaUrl}" alt="Participant submission">`}</div>` : ''}<div class="slide-copy"><p>${escapeHtml(submission.message || '')}</p></div>`;
+    function showSlide(index) {
+      ensurePost();
+      const track = document.querySelector('#ig-track');
+      playlist.forEach((submission) => {
+        const selector = `[data-id="${CSS.escape(String(submission.id))}"]`;
+        if (track.querySelector(selector)) return;
+        const slide = document.createElement('div');
+        slide.className = `ig-slide${submission.mediaUrl ? '' : ' ig-slide--text'}`;
+        slide.dataset.id = submission.id;
+        slide.innerHTML = mediaHtml(submission);
         track.append(slide);
       });
+      track.style.setProperty('--slide-w', `${track.parentElement.getBoundingClientRect().width}px`);
+      track.style.setProperty('--active-slide', index);
+      document.querySelector('#ig-caption').innerHTML = captionHtml(playlist[index]);
+      track.querySelectorAll('video').forEach((video) => {
+        const slide = video.closest('.ig-slide');
+        const active = slide === track.children[index];
+        if (active) video.play().catch(() => {});
+        else { video.pause(); video.currentTime = 0; }
+      });
+      renderDots(index);
+    }
 
-      stage.replaceChildren(track);
-      const activeVideo = track.querySelector('.active video');
-      if (activeVideo) activeVideo.play().catch(() => {});
+    function mediaHtml(submission) {
+      if (submission.mediaUrl) {
+        return submission.mediaType === 'video'
+          ? `<video src="${submission.mediaUrl}" muted playsinline></video>`
+          : `<img src="${submission.mediaUrl}" alt="Participant submission">`;
+      }
+      return `<p class="ig-text">${escapeHtml(submission.message || '')}</p>`;
+    }
+
+    function captionHtml(submission) {
+      const name = submission.name ? `<strong>${escapeHtml(submission.name)}</strong> ` : '';
+      const message = submission.message ? `${escapeHtml(submission.message)} ` : '';
+      return `${name}${message}<span class="ig-tags">#cle #hkust</span>`;
+    }
+
+    function renderDots(active) {
+      const dots = document.querySelector('#ig-dots');
+      if (playlist.length < 2) {
+        dots.hidden = true;
+        dots.replaceChildren();
+        return;
+      }
+      dots.hidden = false;
+      const maxDots = 7;
+      const count = Math.min(playlist.length, maxDots);
+      const start = playlist.length > maxDots
+        ? Math.min(Math.max(active - 3, 0), playlist.length - maxDots)
+        : 0;
+      dots.replaceChildren();
+      for (let offset = 0; offset < count; offset += 1) {
+        const slideIndex = start + offset;
+        const dot = document.createElement('span');
+        dot.className = `ig-dot${slideIndex === active ? ' is-active' : ''}`;
+        dots.append(dot);
+      }
     }
 
     function showPrevious() {
@@ -95,6 +166,12 @@
     document.addEventListener('keydown', (event) => {
       if (event.key === 'ArrowLeft') showPrevious();
       if (event.key === 'ArrowRight' || event.key === ' ') showNext();
+    });
+
+    window.addEventListener('resize', () => {
+      const track = document.querySelector('#ig-track');
+      if (!track) return;
+      track.style.setProperty('--slide-w', `${track.parentElement.getBoundingClientRect().width}px`);
     });
 
     stage.addEventListener('pointerdown', (event) => { touchStartX = event.clientX; });
