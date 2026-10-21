@@ -3,70 +3,317 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Share to the live wall</title>
+  <title>CLE Live Wall — Share your voice</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="upload-page">
   <main class="upload-shell">
-    <p class="eyebrow">Live event wall / participant upload</p>
-    <h1>Put something<br>on the big screen.</h1>
-    <p class="intro">Share a thought, a photo, or a short video. Your submission will join the live loop at the venue.</p>
-    <form class="form-panel" id="submission-form">
-      <label class="field-label" for="message">Your message <span class="mono">optional</span></label>
-      <textarea id="message" name="message" maxlength="280" placeholder="What do you want everyone to see?"></textarea>
-      <label class="field-label" for="name">Your name <span class="mono">optional</span></label>
-      <input id="name" name="name" type="text" maxlength="60" placeholder="How should we credit you?">
-      <input id="event-id" name="eventId" type="hidden">
-      <div class="upload-row">
-        <label class="file-label" for="media">+ Add photo or video</label>
-        <input id="media" name="media" type="file" accept="image/*,video/*">
-        <button class="submit-button" type="submit">Send to the wall</button>
+    <section class="upload-view" id="upload-view">
+      <header class="upload-hero">
+        <h1 class="hero-title">ADD YOUR VOICE TO OUR LIVE WALL!</h1>
+        <p class="hero-subtitle-zh">在互動牆上留下你的聲音！</p>
+        <div class="hero-copy">
+          <p>Share a message, photo or short video and see it appear on the CLE Live Wall at HKUST Information Day.</p>
+          <p class="hero-copy-zh">分享文字、相片或短片，讓你的創作登上香港科技大學資訊日的 CLE 互動牆！</p>
+        </div>
+      </header>
+
+      <form class="form-panel" id="submission-form">
+        <div class="form-section">
+          <h2 class="section-title">Complete the sentence:</h2>
+          <p class="section-title-zh">完成以下句子：</p>
+          <p class="prompt-line">In an AI world, my human communication superpower is…</p>
+          <p class="prompt-line prompt-line-zh">在 AI 世界中，我的人類溝通超能力是……</p>
+          <label class="visually-hidden" for="message">Your message</label>
+          <textarea id="message" name="message" maxlength="120" rows="4" placeholder="Type your answer here…"></textarea>
+          <p class="field-hint field-hint-compact">Suggested limit:<br>Up to 120 characters｜最多 120 個字元</p>
+          <p class="char-count" id="char-count" aria-live="polite">0 / 120</p>
+        </div>
+
+        <div class="form-section">
+          <h2 class="section-title">Upload your creation</h2>
+          <p class="section-title-zh">上載你的作品</p>
+          <p class="field-hint">
+            Photos: JPG or PNG. Videos: up to 8 seconds.<br>
+            相片：JPG 或 PNG。短片：最長 8 秒。
+          </p>
+          <label class="file-label" for="media">+ Choose photo or video</label>
+          <input id="media" name="media" type="file" accept="image/jpeg,image/png,video/*">
+          <div class="file-name" id="file-name">No file selected</div>
+          <p class="field-hint field-hint-compact upload-safety-note">
+            Please avoid showing name badges, school names, contact details or people who have not agreed to appear.<br>
+            請避免拍攝姓名牌、學校名稱、聯絡資料，或未同意入鏡的人士。
+          </p>
+        </div>
+
+        <div class="form-section">
+          <label class="field-label" for="name">Your name or nickname</label>
+          <p class="section-title-zh field-label-zh">你個名或者綽號</p>
+          <input id="name" name="name" type="text" maxlength="60" placeholder="Optional — how should we credit you?">
+        </div>
+
+        <input id="event-id" name="eventId" type="hidden">
+
+        <fieldset class="consent-group">
+          <label class="consent-label">
+            <input type="checkbox" id="consent-required" name="consentRequired" value="yes" required>
+            <span>
+              I confirm that this submission is suitable for display on the HKUST Information Day 2026 live wall, contains no private or contact information, that any identifiable person shown has agreed to be included, and that CLE may review, display, refuse, or remove the submission if it is inappropriate, unsafe, unrelated to the activity, or may infringe others' rights.<br><br>
+              我確認此投稿適合於香港科技大學資訊日 2026 互動牆展示，不含私人或聯絡資料，而任何可被辨認的人士均已同意入鏡；我亦同意 CLE 可審核及展示此投稿，並明白 CLE 可拒絕展示或移除不適當、不安全、與活動無關或可能侵犯他人權利的內容。
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="consent-group consent-group-optional">
+          <label class="consent-label">
+            <input type="checkbox" id="consent-optional" name="consentOptional" value="yes">
+            <span>
+              Optional: I agree that CLE may also use this submission on its official website, social-media channels, and materials promoting CLE activities.<br><br>
+              選填：我同意 CLE 亦可在官方網站、社交媒體及推廣 CLE 活動的材料中使用此投稿。
+            </span>
+          </label>
+        </fieldset>
+
+        <p class="submit-notice">
+          By submitting, you confirm that you have read the
+          <button type="button" class="text-link" id="privacy-open" aria-haspopup="dialog">Participation and Privacy Notice｜參與及私隱聲明</button>.
+          <br>
+          提交即表示你確認已閱讀《參與及私隱聲明》。
+        </p>
+
+        <button class="submit-button" type="submit" id="submit-button">Submit 提交</button>
+        <p class="status" id="status" role="status"></p>
+      </form>
+    </section>
+
+    <section class="confirmation-view hidden" id="confirmation-view" aria-live="polite">
+      <div class="confirmation-panel">
+        <h2 class="confirmation-title">YOUR VOICE HAS LANDED!</h2>
+        <p>Thank you! Your submission is now waiting for review. If approved, it will appear on the live wall shortly.</p>
+        <p class="confirmation-zh">你的聲音已送達！</p>
+        <p class="confirmation-zh">謝謝！你的投稿正等待審核。通過後，將很快出現在互動牆上。</p>
+        <p class="confirmation-booth">While you wait, discover your communication superpower at the CLE booth!</p>
+        <p class="confirmation-zh">等待期間，來 CLE 攤位發掘你的溝通超能力吧！</p>
+        <div class="confirmation-actions">
+          <button type="button" class="secondary-button" id="share-another">Share another 再分享一次</button>
+          <button type="button" class="submit-button" id="done-button">Done 完成</button>
+        </div>
       </div>
-      <div class="file-name" id="file-name">No file selected</div>
-      <p class="status" id="status" role="status"></p>
-    </form>
-    <p class="footer-note">Please only share content you are happy to show publicly.</p>
+    </section>
   </main>
+
+  <dialog class="privacy-dialog" id="privacy-dialog" aria-labelledby="privacy-dialog-title">
+    <div class="privacy-dialog-inner">
+      <h2 id="privacy-dialog-title">Participation and Privacy Notice｜參與及私隱聲明</h2>
+      <div class="privacy-dialog-body">
+        <p>Participation is voluntary. The Center for Language Education (“CLE”), HKUST, collects your submission and chosen display name for operating and moderating the CLE Live Wall at HKUST Information Day 2026. If you provide separate optional consent, CLE may also use the submission on its official website, social-media channels and materials promoting CLE activities.</p>
+        <p>You are not required to provide your real name or contact details. Please do not submit personal information about yourself or others. Photos, videos and messages may be reviewed by authorised CLE staff and technical personnel supporting the platform. Approved submissions may be visible to Information Day visitors. Content approved for further use may be accessible to the public through CLE’s official channels.</p>
+        <p>Submissions will be retained until [insert retention/deletion date] and then securely deleted unless retention is required for an approved purpose or by law. You may request access to or correction of your personal data, withdraw optional permission for future use, or request removal by contacting [name/job title, email and address]. Withdrawal will not affect any use that occurred before CLE received and processed the request.</p>
+        <p>參與屬自願性質。香港科技大學語文教育中心（「CLE」）收集你的投稿及顯示名稱，以運作及管理香港科技大學資訊日 2026 的 CLE 互動牆。如你另行給予自願同意，CLE 亦可在官方網站、社交媒體及推廣 CLE 活動的材料中使用投稿。</p>
+        <p>你無須提供真實姓名或聯絡資料。請勿提交自己或他人的個人資料。投稿可由獲授權的 CLE 職員及支援平台的技術人員審核。獲批准的投稿可供資訊日參加者觀看；獲准作進一步用途的內容，則可能透過 CLE 官方渠道向公眾發佈。</p>
+        <p>投稿將保留至 [填寫保留／刪除日期]，其後安全刪除；如因已批准的用途或法律要求而須保留則除外。如欲查閱或更正個人資料、撤回日後使用的自願同意，或要求移除內容，請聯絡 [姓名／職銜、電郵及地址]。撤回同意不影響 CLE 在收到並處理要求前已進行的使用。</p>
+      </div>
+      <form method="dialog">
+        <button class="secondary-button privacy-close" value="close">Close 關閉</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog class="privacy-dialog submit-notice-dialog" id="submit-notice-dialog" aria-labelledby="submit-notice-dialog-title">
+    <div class="privacy-dialog-inner">
+      <h2 id="submit-notice-dialog-title">Before you submit｜提交前提示</h2>
+      <div class="privacy-dialog-body submit-notice-body">
+        <p>If you are under 18, please select this option only with permission from your parent or guardian.</p>
+        <p>如你未滿 18 歲，請先取得家長或監護人同意，才選擇此項。</p>
+      </div>
+      <div class="submit-notice-actions">
+        <button type="button" class="secondary-button" id="submit-notice-cancel">Go back 返回</button>
+        <button type="button" class="submit-button" id="submit-notice-confirm">Confirm submit 確認提交</button>
+      </div>
+    </div>
+  </dialog>
+
   <script>
     const form = document.querySelector('#submission-form');
+    const uploadView = document.querySelector('#upload-view');
+    const confirmationView = document.querySelector('#confirmation-view');
     const media = document.querySelector('#media');
     const fileName = document.querySelector('#file-name');
     const status = document.querySelector('#status');
-    const submitButton = form.querySelector('button');
+    const submitButton = document.querySelector('#submit-button');
     const eventIdInput = document.querySelector('#event-id');
+    const messageField = document.querySelector('#message');
+    const charCount = document.querySelector('#char-count');
+    const consentRequired = document.querySelector('#consent-required');
+    const consentOptional = document.querySelector('#consent-optional');
+    const privacyDialog = document.querySelector('#privacy-dialog');
+    const submitNoticeDialog = document.querySelector('#submit-notice-dialog');
+    const submitNoticeCancel = document.querySelector('#submit-notice-cancel');
+    const submitNoticeConfirm = document.querySelector('#submit-notice-confirm');
+    const privacyOpen = document.querySelector('#privacy-open');
+    const shareAnother = document.querySelector('#share-another');
+    const doneButton = document.querySelector('#done-button');
+
     const eventId = new URLSearchParams(window.location.search).get('event');
+    const maxVideoSeconds = 8;
+    const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
 
     if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
       submitButton.disabled = true;
+      consentRequired.disabled = true;
       status.className = 'status error';
       status.textContent = 'This upload link is missing a valid event code.';
     } else {
       eventIdInput.value = eventId;
     }
 
-    media.addEventListener('change', () => {
-      fileName.textContent = media.files[0]?.name || 'No file selected';
+    privacyOpen.addEventListener('click', () => privacyDialog.showModal());
+
+    messageField.addEventListener('input', () => {
+      charCount.textContent = `${messageField.value.length} / 120`;
+    });
+
+    function resetFormState() {
+      form.reset();
+      eventIdInput.value = eventId;
+      fileName.textContent = 'No file selected';
+      charCount.textContent = '0 / 120';
+      status.className = 'status';
+      status.textContent = '';
+      submitButton.disabled = false;
+    }
+
+    function showConfirmation() {
+      uploadView.classList.add('hidden');
+      confirmationView.classList.remove('hidden');
+      confirmationView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function showUploadForm() {
+      confirmationView.classList.add('hidden');
+      uploadView.classList.remove('hidden');
+      resetFormState();
+      uploadView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    shareAnother.addEventListener('click', showUploadForm);
+
+    doneButton.addEventListener('click', () => {
+      window.close();
+      doneButton.disabled = true;
+      doneButton.textContent = 'You can close this page 你可以關閉此頁';
+    });
+
+    function validateImageFile(file) {
+      if (!allowedImageTypes.has(file.type)) {
+        throw new Error('Photos must be JPG or PNG. 相片須為 JPG 或 PNG。');
+      }
+    }
+
+    function validateVideoDuration(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          URL.revokeObjectURL(url);
+          if (video.duration > maxVideoSeconds) {
+            reject(new Error(`Videos must be ${maxVideoSeconds} seconds or shorter. 短片最長 ${maxVideoSeconds} 秒。`));
+            return;
+          }
+          resolve();
+        };
+        video.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Unable to read this video. Please try another file. 無法讀取此短片，請改用其他檔案。'));
+        };
+        video.src = url;
+      });
+    }
+
+    media.addEventListener('change', async () => {
+      status.className = 'status';
+      status.textContent = '';
+      const file = media.files[0];
+      if (!file) {
+        fileName.textContent = 'No file selected';
+        return;
+      }
+
+      fileName.textContent = file.name;
+      try {
+        if (file.type.startsWith('image/')) {
+          validateImageFile(file);
+        } else if (file.type.startsWith('video/')) {
+          await validateVideoDuration(file);
+        } else {
+          throw new Error('Please choose a JPG, PNG, or short video. 請選擇 JPG、PNG 或短片。');
+        }
+      } catch (error) {
+        media.value = '';
+        fileName.textContent = 'No file selected';
+        status.className = 'status error';
+        status.textContent = error.message;
+      }
+    });
+
+    async function sendSubmission() {
+      status.textContent = 'Sending…';
+      submitButton.disabled = true;
+
+      try {
+        const response = await fetch('/api/submissions', { method: 'POST', body: new FormData(form) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Unable to send submission.');
+        showConfirmation();
+      } catch (error) {
+        status.className = 'status error';
+        status.textContent = error.message;
+        submitButton.disabled = false;
+      }
+    }
+
+    submitNoticeCancel.addEventListener('click', () => submitNoticeDialog.close());
+    submitNoticeConfirm.addEventListener('click', async () => {
+      submitNoticeDialog.close();
+      await sendSubmission();
     });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       status.className = 'status';
-      status.textContent = 'Sending...';
-      submitButton.disabled = true;
-      try {
-        const response = await fetch('/api/submissions', { method: 'POST', body: new FormData(form) });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Unable to send submission.');
-        form.reset();
-        eventIdInput.value = eventId;
-        fileName.textContent = 'No file selected';
-        status.textContent = 'On its way to the screen.';
-      } catch (error) {
+      status.textContent = '';
+
+      const message = messageField.value.trim();
+      const file = media.files[0];
+
+      if (!message && !file) {
         status.className = 'status error';
-        status.textContent = error.message;
-      } finally {
-        submitButton.disabled = false;
+        status.textContent = 'Add a message, photo, or video before submitting. 請先加入文字、相片或短片。';
+        return;
       }
+
+      if (!consentRequired.checked) {
+        status.className = 'status error';
+        status.textContent = 'Please tick the required confirmation to submit. 請勾選必需的確認方框。';
+        return;
+      }
+
+      if (file) {
+        try {
+          if (file.type.startsWith('image/')) {
+            validateImageFile(file);
+          } else if (file.type.startsWith('video/')) {
+            await validateVideoDuration(file);
+          }
+        } catch (error) {
+          status.className = 'status error';
+          status.textContent = error.message;
+          return;
+        }
+      }
+
+      submitNoticeDialog.showModal();
     });
   </script>
 </body>

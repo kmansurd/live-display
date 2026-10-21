@@ -18,27 +18,72 @@ button { cursor: pointer; }
 
 .upload-page { min-height: 100vh; padding: 28px; background: radial-gradient(circle at 95% 5%, #e7f5a8 0, transparent 28%), var(--paper); }
 .upload-shell { width: min(720px, 100%); margin: 0 auto; }
-.eyebrow, .mono { font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
-.eyebrow { color: #65811c; font-weight: 500; }
-h1 { max-width: 620px; margin: 16px 0 12px; font-size: clamp(42px, 8vw, 76px); line-height: .95; letter-spacing: -.055em; }
-.intro { max-width: 500px; margin: 0 0 34px; color: var(--muted); font-size: 18px; line-height: 1.5; }
+.mono { font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
+.hidden { display: none !important; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.upload-hero { margin-bottom: 28px; }
+.hero-title { max-width: 720px; margin: 0 0 10px; font-size: clamp(28px, 6vw, 44px); line-height: 1.05; letter-spacing: -.03em; }
+.hero-subtitle-zh { max-width: 720px; margin: 0 0 18px; color: var(--ink); font-size: clamp(22px, 4.5vw, 32px); font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
+.hero-copy p { margin: 0 0 10px; color: var(--muted); font-size: clamp(16px, 2.5vw, 18px); line-height: 1.55; }
+.hero-copy-zh { color: var(--ink); }
+
 .form-panel { padding: clamp(22px, 5vw, 42px); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.field-label { display: block; margin: 0 0 10px; font-weight: 600; }
-textarea { width: 100%; min-height: 130px; resize: vertical; padding: 16px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: #fbfaf4; outline: none; }
+.form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.form-section:last-of-type { border-bottom: 0; }
+.section-title { margin: 0 0 4px; font-size: 20px; line-height: 1.25; }
+.section-title-zh { margin: 0 0 12px; color: var(--muted); font-size: 16px; line-height: 1.4; }
+.prompt-line { margin: 0 0 6px; font-weight: 600; line-height: 1.45; }
+.prompt-line-zh { margin-bottom: 12px; font-weight: 500; color: var(--muted); }
+.field-hint { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.field-hint-compact { margin-top: 10px; margin-bottom: 0; font-size: 13px; }
+.upload-safety-note { margin-top: 12px; }
+.field-label { display: block; margin: 0 0 4px; font-weight: 600; }
+.field-label-zh { margin: 0 0 10px; font-weight: 500; }
+.char-count { margin: 8px 0 0; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; text-align: right; }
+
+textarea { width: 100%; min-height: 110px; resize: vertical; padding: 16px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: #fbfaf4; outline: none; }
 textarea:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--lime); }
 input[type=text] { width: 100%; min-height: 50px; margin-bottom: 4px; padding: 0 16px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: #fbfaf4; outline: none; }
 input[type=text]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--lime); }
-.upload-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 22px; }
-.file-label { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border: 1px solid var(--line); background: #fbfaf4; font-weight: 600; }
+.file-label { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border: 1px solid var(--line); background: #fbfaf4; font-weight: 600; cursor: pointer; }
 .file-label:hover { background: var(--lime); }
 input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .submit-button { min-height: 50px; padding: 0 24px; border: 0; border-radius: 999px; color: #fff; background: var(--ink); font-weight: 700; }
 .submit-button:hover { background: #294832; }
 .submit-button:disabled { opacity: .55; cursor: wait; }
+.secondary-button { min-height: 50px; padding: 0 24px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: #fbfaf4; font-weight: 700; }
+.secondary-button:hover { background: var(--lime); }
 .file-name { margin-top: 10px; color: var(--muted); font-size: 13px; }
-.status { min-height: 24px; margin: 22px 0 0; color: #65811c; font-weight: 600; }
+
+.consent-group { margin: 0 0 20px; padding: 0; border: 0; }
+.consent-label { display: flex; gap: 12px; align-items: flex-start; font-size: 12px; line-height: 1.45; color: var(--muted); cursor: pointer; }
+.consent-label input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--ink); }
+.consent-group-optional { margin-top: 8px; }
+.submit-notice-body { max-height: none; }
+.submit-notice-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.submit-notice { margin: 8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.text-link { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.text-link:hover { color: #294832; }
+
+.status { min-height: 24px; margin: 16px 0 0; color: #65811c; font-weight: 600; }
 .status.error { color: #bd432d; }
-.footer-note { margin-top: 20px; color: var(--muted); font-size: 13px; }
+
+.confirmation-panel { padding: clamp(28px, 6vw, 48px); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.confirmation-title { margin: 0 0 16px; font-size: clamp(28px, 5vw, 40px); line-height: 1.05; letter-spacing: -.03em; }
+.confirmation-panel p { margin: 0 0 12px; color: var(--muted); font-size: 17px; line-height: 1.55; }
+.confirmation-zh { color: var(--ink); }
+.confirmation-booth { margin-top: 18px !important; font-weight: 600; color: var(--ink) !important; }
+.confirmation-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+
+.privacy-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); color: var(--ink); background: var(--panel); }
+.privacy-dialog::backdrop { background: rgba(22, 37, 29, .45); }
+.privacy-dialog-inner { padding: clamp(22px, 5vw, 32px); }
+.privacy-dialog-inner h2 { margin: 0 0 16px; font-size: 22px; line-height: 1.25; }
+.privacy-dialog-body { max-height: min(60vh, 480px); overflow: auto; margin-bottom: 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.privacy-dialog-body p { margin: 0 0 14px; }
+.privacy-close { width: 100%; }
 
 .display-page { min-height: 100vh; overflow: hidden; background: #101912; }
 .display-stage { min-height: 100vh; display: flex; align-items: center; overflow: hidden; padding: 0; touch-action: pan-y; }
@@ -55,4 +100,4 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .text-only .slide-copy { top: 50%; right: auto; bottom: auto; left: 50%; width: fit-content; max-width: calc(100% - 48px); transform: translate(-50%, -50%); color: var(--ink); background: transparent; }
 .text-only .slide-copy p { max-width: 850px; font-size: clamp(38px, 7vw, 92px); text-shadow: none; }
 @keyframes arrive { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
-@media (max-width: 650px) { .upload-page { padding: 18px; } .upload-row { align-items: stretch; flex-direction: column; } .submit-button { width: 100%; } .carousel-track { --slide-gap: 12px; } .slide { flex-basis: 88vw; height: 86vh; } .slide-name { top: 16px; left: 16px; max-width: calc(100% - 32px); } .slide-copy, .text-only .slide-copy { max-width: calc(100% - 32px); padding: 16px 20px; } }
+@media (max-width: 650px) { .upload-page { padding: 18px; } .submit-button, .secondary-button { width: 100%; } .confirmation-actions, .submit-notice-actions { flex-direction: column; } .carousel-track { --slide-gap: 12px; } .slide { flex-basis: 88vw; height: 86vh; } .slide-name { top: 16px; left: 16px; max-width: calc(100% - 32px); } .slide-copy, .text-only .slide-copy { max-width: calc(100% - 32px); padding: 16px 20px; } }

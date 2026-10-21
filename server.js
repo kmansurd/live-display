@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
 app.post('/api/submissions', submissionLimiter, upload.single('media'), async (request, response, next) => {
   try {
     const eventId = getEventId(request.body.eventId);
-    const message = String(request.body.message || '').trim().slice(0, 280);
+    const message = String(request.body.message || '').trim().slice(0, 120);
     const name = String(request.body.name || '').trim().slice(0, 60);
 
     if (!message && !request.file) {
