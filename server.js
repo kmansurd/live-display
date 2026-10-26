@@ -44,8 +44,8 @@ const upload = multer({
   storage,
   limits: { fileSize: maxFileSize },
   fileFilter: (_request, file, callback) => {
-    const allowed = ['image/', 'video/'].some((type) => file.mimetype.startsWith(type));
-    callback(allowed ? null : new Error('Only image and video files are supported.'), allowed);
+    const allowed = file.mimetype === 'image/jpeg' || file.mimetype === 'image/png';
+    callback(allowed ? null : new Error('Only JPG and PNG photos are supported.'), allowed);
   }
 });
 
@@ -96,7 +96,7 @@ app.post('/api/submissions', submissionLimiter, upload.single('media'), async (r
 
     if (!message && !request.file) {
       return response.status(400).json({
-        error: 'Add a message, photo, or video before sending.'
+        error: 'Add a message or photo before sending.'
       });
     }
 

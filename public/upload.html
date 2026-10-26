@@ -10,20 +10,16 @@
   <main class="upload-shell">
     <section class="upload-view" id="upload-view">
       <header class="upload-hero">
-        <h1 class="hero-title">ADD YOUR VOICE TO OUR LIVE WALL!</h1>
-        <p class="hero-subtitle-zh">在互動牆上留下你的聲音！</p>
         <div class="hero-copy">
-          <p>Share a message, photo or short video and see it appear on the CLE Live Wall at HKUST Information Day.</p>
-          <p class="hero-copy-zh">分享文字、相片或短片，讓你的創作登上香港科技大學資訊日的 CLE 互動牆！</p>
+          <p class="hero-lead">Share a message and/or photo and see it appear on the CLE Live Wall at the HKUST Information Day.</p>
+          <p class="hero-copy-zh">分享文字及/或相片，讓你的創作登上香港科技大學資訊日的 CLE 互動牆！</p>
         </div>
       </header>
 
       <form class="form-panel" id="submission-form">
         <div class="form-section">
-          <h2 class="section-title">Complete the sentence:</h2>
-          <p class="section-title-zh">完成以下句子：</p>
-          <p class="prompt-line">In an AI world, my human communication superpower is…</p>
-          <p class="prompt-line prompt-line-zh">在 AI 世界中，我的人類溝通超能力是……</p>
+          <p class="prompt-line">In a world with AI, my human communication superpower is…</p>
+          <p class="prompt-line prompt-line-zh">在有 AI 的世界裡，我與人溝通的超能力是…</p>
           <label class="visually-hidden" for="message">Your message</label>
           <textarea id="message" name="message" maxlength="120" rows="4" placeholder="Type your answer here…"></textarea>
           <p class="field-hint field-hint-compact">Suggested limit:<br>Up to 120 characters｜最多 120 個字元</p>
@@ -34,11 +30,11 @@
           <h2 class="section-title">Upload your creation</h2>
           <p class="section-title-zh">上載你的作品</p>
           <p class="field-hint">
-            Photos: JPG or PNG. Videos: up to 8 seconds.<br>
-            相片：JPG 或 PNG。短片：最長 8 秒。
+            Photos: JPG or PNG.<br>
+            相片：JPG 或 PNG。
           </p>
-          <label class="file-label" for="media">+ Choose photo or video</label>
-          <input id="media" name="media" type="file" accept="image/jpeg,image/png,video/*">
+          <label class="file-label" for="media">+ Choose photo</label>
+          <input id="media" name="media" type="file" accept="image/jpeg,image/png">
           <div class="file-name" id="file-name">No file selected</div>
           <p class="field-hint field-hint-compact upload-safety-note">
             Please avoid showing name badges, school names, contact details or people who have not agreed to appear.<br>
@@ -155,7 +151,6 @@
     const doneButton = document.querySelector('#done-button');
 
     const eventId = new URLSearchParams(window.location.search).get('event');
-    const maxVideoSeconds = 8;
     const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
 
     if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
@@ -210,28 +205,7 @@
       }
     }
 
-    function validateVideoDuration(file) {
-      return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(file);
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-          URL.revokeObjectURL(url);
-          if (video.duration > maxVideoSeconds) {
-            reject(new Error(`Videos must be ${maxVideoSeconds} seconds or shorter. 短片最長 ${maxVideoSeconds} 秒。`));
-            return;
-          }
-          resolve();
-        };
-        video.onerror = () => {
-          URL.revokeObjectURL(url);
-          reject(new Error('Unable to read this video. Please try another file. 無法讀取此短片，請改用其他檔案。'));
-        };
-        video.src = url;
-      });
-    }
-
-    media.addEventListener('change', async () => {
+    media.addEventListener('change', () => {
       status.className = 'status';
       status.textContent = '';
       const file = media.files[0];
@@ -242,13 +216,7 @@
 
       fileName.textContent = file.name;
       try {
-        if (file.type.startsWith('image/')) {
-          validateImageFile(file);
-        } else if (file.type.startsWith('video/')) {
-          await validateVideoDuration(file);
-        } else {
-          throw new Error('Please choose a JPG, PNG, or short video. 請選擇 JPG、PNG 或短片。');
-        }
+        validateImageFile(file);
       } catch (error) {
         media.value = '';
         fileName.textContent = 'No file selected';
@@ -289,7 +257,7 @@
 
       if (!message && !file) {
         status.className = 'status error';
-        status.textContent = 'Add a message, photo, or video before submitting. 請先加入文字、相片或短片。';
+        status.textContent = 'Add a message or photo before submitting. 請先加入文字或相片。';
         return;
       }
 
@@ -301,11 +269,7 @@
 
       if (file) {
         try {
-          if (file.type.startsWith('image/')) {
-            validateImageFile(file);
-          } else if (file.type.startsWith('video/')) {
-            await validateVideoDuration(file);
-          }
+          validateImageFile(file);
         } catch (error) {
           status.className = 'status error';
           status.textContent = error.message;
