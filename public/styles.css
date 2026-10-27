@@ -298,4 +298,30 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .display-stage { padding: 12px; }
   .ig-avatar { width: 36px; height: 36px; font-size: 11px; }
   .ig-actions svg { width: 24px; height: 24px; }
+  .screen-actions { flex-direction: column; }
 }
+
+.screen-page { min-height: 100vh; padding: 28px; background: radial-gradient(circle at 95% 5%, #e7f5a8 0, transparent 28%), var(--paper); }
+.screen-shell { width: min(1180px, 100%); margin: 0 auto; }
+.screen-kicker { margin: 0 0 8px; color: #65811c; font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.screen-title { margin: 0 0 8px; font-size: clamp(32px, 5vw, 52px); line-height: .95; letter-spacing: -.04em; }
+.screen-intro { max-width: 640px; margin: 0; color: var(--muted); font-size: 17px; line-height: 1.5; }
+.screen-gate, .screen-toolbar, .screen-card { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.screen-gate { width: min(460px, 100%); margin-top: 28px; padding: 28px; }
+.screen-gate label { display: block; margin-bottom: 8px; font-weight: 600; }
+.screen-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0; padding: 8px; }
+.screen-tab, .screen-action { min-height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fbfaf4; color: var(--ink); font-weight: 700; }
+.screen-tab.is-active, .screen-action-show { border-color: var(--ink); color: #fff; background: var(--ink); }
+.screen-tab:hover, .screen-action:hover { background: var(--lime); color: var(--ink); }
+.screen-tab.is-active:hover, .screen-action-show:hover { background: #294832; color: #fff; }
+.screen-action-hide { color: #8a5a12; }
+.screen-action-delete { color: #bd432d; }
+.screen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.screen-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.screen-media { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; overflow: hidden; background: #1c261f; }
+.screen-media img, .screen-media video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.screen-text { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; padding: 22px; background: #fffdf8; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.03em; text-align: center; overflow-wrap: anywhere; }
+.screen-copy { margin: 0; padding: 12px 14px 0; color: var(--ink); font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.screen-meta { margin: 0; padding: 8px 14px 0; color: var(--muted); font-size: 13px; }
+.screen-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px 14px; }
+.screen-empty { margin: 12px 0 0; color: var(--muted); }

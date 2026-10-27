@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
@@ -37,6 +38,111 @@ function getEventId(value) {
   }
 
   return eventId;
+}
+
+function getSubmissionId(value) {
+  const id = String(value || '').trim();
+
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    throw new Error('A valid submission is required.');
+  }
+
+  return id;
+}
+
+const moderationPath = path.join(__dirname, 'data', 'moderation.json');
+let moderation = { seeded: false, items: {} };
+
+function loadModeration() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(moderationPath, 'utf8'));
+    moderation = {
+      seeded: Boolean(saved.seeded),
+      items: saved.items && typeof saved.items === 'object' ? saved.items : {}
+    };
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.error(error);
+    moderation = { seeded: false, items: {} };
+  }
+}
+
+function saveModeration() {
+  fs.mkdirSync(path.dirname(moderationPath), { recursive: true });
+  fs.writeFileSync(moderationPath, JSON.stringify(moderation));
+}
+
+function statusFor(id) {
+  return moderation.items[id] || 'pending';
+}
+
+function setStatus(id, status) {
+  moderation.items[id] = status;
+  saveModeration();
+}
+
+function storagePathFromPublicUrl(url) {
+  if (!url) return null;
+  const marker = `/object/public/${storageBucket}/`;
+  const index = url.indexOf(marker);
+  if (index === -1) return null;
+  return decodeURIComponent(url.slice(index + marker.length).split('?')[0]);
+}
+
+function toSubmission(row, includeStatus) {
+  const submission = {
+    id: row.id,
+    eventId: row.event_id,
+    message: row.message,
+    name: row.name,
+    mediaUrl: row.media_url,
+    mediaType: row.media_type,
+    createdAt: row.created_at
+  };
+
+  if (includeStatus) submission.status = statusFor(row.id);
+  return submission;
+}
+
+function moderatorKeyMatches(provided) {
+  const expected = process.env.MODERATOR_PASSWORD || '';
+  const left = Buffer.from(String(provided || ''));
+  const right = Buffer.from(expected);
+
+  if (!expected || left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function requireModerator(request, response) {
+  if (!process.env.MODERATOR_PASSWORD) {
+    response.status(503).json({ error: 'Screening password is not configured.' });
+    return false;
+  }
+
+  if (!moderatorKeyMatches(request.get('x-moderator-key'))) {
+    response.status(401).json({ error: 'Enter the screening password to continue.' });
+    return false;
+  }
+
+  return true;
+}
+
+async function seedExistingSubmissions() {
+  loadModeration();
+  if (moderation.seeded) return;
+
+  const { data, error } = await supabase.from('submissions').select('id');
+
+  if (error) {
+    console.error(`Unable to prepare screening: ${error.message}`);
+    return;
+  }
+
+  for (const row of data || []) {
+    if (!moderation.items[row.id]) moderation.items[row.id] = 'approved';
+  }
+
+  moderation.seeded = true;
+  saveModeration();
 }
 
 const storage = multer.memoryStorage();
@@ -75,13 +181,27 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (_request, response) => response.redirect('/upload'));
 app.get('/upload', (_request, response) => response.sendFile(path.join(__dirname, 'public', 'upload.html')));
 app.get('/display', (_request, response) => response.sendFile(path.join(__dirname, 'public', 'display.html')));
+app.get('/screen', (_request, response) => response.sendFile(path.join(__dirname, 'public', 'screen.html')));
 
 io.on('connection', (socket) => {
-  socket.on('event:join', (payload) => {
+  socket.on('event:join', async (payload) => {
     try {
       const eventId = getEventId(payload && payload.eventId);
       socket.join(eventId);
-      socket.emit('event:joined', { eventId });
+      const { data: rows, error } = await supabase
+        .from('submissions')
+        .select('id, event_id, message, name, media_url, media_type, created_at')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: true })
+        .limit(500);
+
+      if (error) throw new Error(error.message);
+
+      const submissions = (rows || [])
+        .filter((row) => statusFor(row.id) === 'approved')
+        .map((row) => toSubmission(row));
+
+      socket.emit('event:joined', { eventId, submissions });
     } catch (error) {
       socket.emit('event:error', { error: error.message });
     }
@@ -147,17 +267,10 @@ app.post('/api/submissions', submissionLimiter, upload.single('media'), async (r
       throw new Error(`Unable to save submission: ${databaseError.message}`);
     }
 
-    const submission = {
-      id: row.id,
-      eventId: row.event_id,
-      message: row.message,
-      name: row.name,
-      mediaUrl: row.media_url,
-      mediaType: row.media_type,
-      createdAt: row.created_at
-    };
+    setStatus(id, 'pending');
 
-    io.to(eventId).emit('submission:new', submission);
+    const submission = toSubmission(row, true);
+
     return response.status(201).json({ submission });
   } catch (error) {
     return next(error);
@@ -172,23 +285,102 @@ app.get('/api/submissions', async (request, response, next) => {
       .select('id, event_id, message, name, media_url, media_type, created_at')
       .eq('event_id', eventId)
       .order('created_at', { ascending: true })
-      .limit(100);
+      .limit(500);
 
     if (error) {
       throw new Error(`Unable to load submissions: ${error.message}`);
     }
 
-    const submissions = rows.map((row) => ({
-      id: row.id,
-      eventId: row.event_id,
-      message: row.message,
-      name: row.name,
-      mediaUrl: row.media_url,
-      mediaType: row.media_type,
-      createdAt: row.created_at
-    }));
+    const submissions = rows
+      .filter((row) => statusFor(row.id) === 'approved')
+      .map((row) => toSubmission(row));
 
     return response.json({ submissions });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get('/api/moderation/submissions', adminLimiter, async (request, response, next) => {
+  try {
+    if (!requireModerator(request, response)) return;
+
+    const eventId = getEventId(request.query.event);
+    const { data: rows, error } = await supabase
+      .from('submissions')
+      .select('id, event_id, message, name, media_url, media_type, created_at')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      throw new Error(`Unable to load submissions: ${error.message}`);
+    }
+
+    return response.json({
+      submissions: rows.map((row) => toSubmission(row, true))
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/moderation/submissions/:id', adminLimiter, async (request, response, next) => {
+  try {
+    if (!requireModerator(request, response)) return;
+
+    const id = getSubmissionId(request.params.id);
+    const eventId = getEventId(request.body.eventId);
+    const action = String(request.body.action || '');
+
+    if (!['approve', 'hide', 'delete'].includes(action)) {
+      return response.status(400).json({ error: 'Choose show, hide, or delete.' });
+    }
+
+    const { data: row, error } = await supabase
+      .from('submissions')
+      .select('id, event_id, message, name, media_url, media_type, created_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Unable to load submission: ${error.message}`);
+    }
+
+    if (!row || row.event_id !== eventId) {
+      return response.status(404).json({ error: 'That submission is not in this event.' });
+    }
+
+    if (action === 'delete') {
+      const storagePath = storagePathFromPublicUrl(row.media_url);
+
+      if (storagePath) {
+        const { error: storageError } = await supabase.storage.from(storageBucket).remove([storagePath]);
+        if (storageError) console.error(storageError);
+      }
+
+      const { error: deleteError } = await supabase.from('submissions').delete().eq('id', id);
+
+      if (deleteError) {
+        throw new Error(`Unable to delete submission: ${deleteError.message}`);
+      }
+
+      delete moderation.items[id];
+      saveModeration();
+      io.to(eventId).emit('submission:removed', { id });
+      return response.json({ ok: true });
+    }
+
+    const status = action === 'approve' ? 'approved' : 'hidden';
+    setStatus(id, status);
+
+    if (status === 'approved') {
+      io.to(eventId).emit('submission:new', toSubmission(row));
+    } else {
+      io.to(eventId).emit('submission:removed', { id });
+    }
+
+    return response.json({ submission: toSubmission(row, true) });
   } catch (error) {
     return next(error);
   }
@@ -203,8 +395,11 @@ app.use((error, _request, response, _next) => {
   return response.status(400).json({ error: error.message || 'Unable to process submission.' });
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Live event wall running at http://localhost:${port}`);
-  console.log(`Participants: http://YOUR-LAPTOP-IP:${port}/upload`);
-  console.log(`Display:      http://localhost:${port}/display`);
+seedExistingSubmissions().then(() => {
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Live event wall running at http://localhost:${port}`);
+    console.log(`Participants: http://YOUR-LAPTOP-IP:${port}/upload`);
+    console.log(`Display:      http://localhost:${port}/display`);
+    console.log(`Screening:    http://localhost:${port}/screen`);
+  });
 });

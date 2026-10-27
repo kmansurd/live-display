@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLE Live Wall — Screen submissions</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="screen-page">
+  <main class="screen-shell">
+    <p class="screen-kicker">Staff only · 工作人員專用</p>
+    <h1 class="screen-title">Screen the wall</h1>
+    <p class="screen-intro">Review every submission. Show the ones that belong on the display, or hide and delete anything already on the wall.</p>
+    <p class="screen-intro">審核所有投稿。把適合的內容放到互動牆，或隱藏、刪除已在展示中的內容。</p>
+
+    <form class="screen-gate" id="screen-gate">
+      <label for="moderator-key">Screening password 審核密碼</label>
+      <input id="moderator-key" name="moderatorKey" type="password" autocomplete="current-password" required>
+      <button class="submit-button" type="submit">Continue 繼續</button>
+      <p class="status" id="gate-status" role="status"></p>
+    </form>
+
+    <section id="screen-app" class="hidden">
+      <div class="screen-toolbar" role="tablist" aria-label="Submission groups">
+        <button class="screen-tab is-active" type="button" data-filter="pending">Waiting <span id="count-pending">0</span></button>
+        <button class="screen-tab" type="button" data-filter="approved">On the wall <span id="count-approved">0</span></button>
+        <button class="screen-tab" type="button" data-filter="hidden">Hidden <span id="count-hidden">0</span></button>
+      </div>
+      <p class="status" id="screen-status" role="status"></p>
+      <div class="screen-grid" id="screen-grid"></div>
+    </section>
+  </main>
+  <script>
+    const gate = document.querySelector('#screen-gate');
+    const gateStatus = document.querySelector('#gate-status');
+    const app = document.querySelector('#screen-app');
+    const grid = document.querySelector('#screen-grid');
+    const screenStatus = document.querySelector('#screen-status');
+    const keyInput = document.querySelector('#moderator-key');
+    const eventId = new URLSearchParams(window.location.search).get('event');
+    const storageKey = 'cle-screen-key';
+
+    let moderatorKey = sessionStorage.getItem(storageKey) || '';
+    let submissions = [];
+    let filter = 'pending';
+    let busy = false;
+
+    if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
+      gate.querySelector('button').disabled = true;
+      gateStatus.className = 'status error';
+      gateStatus.textContent = 'This screening link is missing a valid event code.';
+    }
+
+    gate.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      moderatorKey = keyInput.value;
+      gateStatus.className = 'status';
+      gateStatus.textContent = 'Checking…';
+      const ok = await loadSubmissions();
+      if (ok) sessionStorage.setItem(storageKey, moderatorKey);
+    });
+
+    document.querySelectorAll('.screen-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        filter = tab.dataset.filter;
+        document.querySelectorAll('.screen-tab').forEach((item) => {
+          item.classList.toggle('is-active', item === tab);
+        });
+        render();
+      });
+    });
+
+    grid.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button || busy) return;
+      const id = button.closest('[data-id]')?.dataset.id;
+      const action = button.dataset.action;
+      if (!id || !action) return;
+      if (action === 'delete' && !window.confirm('Delete this submission? This removes it from the wall and cannot be undone.\n刪除此投稿？它會從互動牆移除，而且無法復原。')) return;
+
+      busy = true;
+      button.disabled = true;
+      screenStatus.className = 'status';
+      screenStatus.textContent = 'Updating…';
+      try {
+        const response = await fetch(`/api/moderation/submissions/${encodeURIComponent(id)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-moderator-key': moderatorKey
+          },
+          body: JSON.stringify({ eventId, action })
+        });
+        const result = await response.json();
+        if (response.status === 401) {
+          showGate(result.error);
+          return;
+        }
+        if (!response.ok) throw new Error(result.error || 'Unable to update submission.');
+        if (action === 'delete') submissions = submissions.filter((item) => item.id !== id);
+        else submissions = submissions.map((item) => item.id === id ? result.submission : item);
+        screenStatus.textContent = '';
+        render();
+      } catch (error) {
+        screenStatus.className = 'status error';
+        screenStatus.textContent = error.message;
+      } finally {
+        busy = false;
+      }
+    });
+
+    function showGate(message) {
+      sessionStorage.removeItem(storageKey);
+      moderatorKey = '';
+      app.classList.add('hidden');
+      gate.classList.remove('hidden');
+      gateStatus.className = 'status error';
+      gateStatus.textContent = message || 'Enter the screening password to continue.';
+    }
+
+    function showApp() {
+      gate.classList.add('hidden');
+      app.classList.remove('hidden');
+      gateStatus.textContent = '';
+    }
+
+    async function loadSubmissions() {
+      if (!eventId) return false;
+      try {
+        const response = await fetch(`/api/moderation/submissions?event=${encodeURIComponent(eventId)}`, {
+          headers: { 'x-moderator-key': moderatorKey }
+        });
+        const result = await response.json();
+        if (response.status === 401 || response.status === 503) {
+          showGate(result.error);
+          return false;
+        }
+        if (!response.ok) throw new Error(result.error || 'Unable to load submissions.');
+        submissions = result.submissions;
+        showApp();
+        render();
+        return true;
+      } catch (error) {
+        if (!app.classList.contains('hidden')) {
+          screenStatus.className = 'status error';
+          screenStatus.textContent = error.message;
+        } else {
+          gateStatus.className = 'status error';
+          gateStatus.textContent = error.message;
+        }
+        return false;
+      }
+    }
+
+    function render() {
+      const counts = { pending: 0, approved: 0, hidden: 0 };
+      submissions.forEach((item) => {
+        if (counts[item.status] !== undefined) counts[item.status] += 1;
+      });
+      document.querySelector('#count-pending').textContent = counts.pending;
+      document.querySelector('#count-approved').textContent = counts.approved;
+      document.querySelector('#count-hidden').textContent = counts.hidden;
+
+      const visible = submissions.filter((item) => item.status === filter);
+      if (!visible.length) {
+        const emptyCopy = {
+          pending: 'Nothing is waiting for review. 沒有待審核的投稿。',
+          approved: 'Nothing is on the wall yet. 互動牆暫時未有展示內容。',
+          hidden: 'Nothing is hidden. 沒有已隱藏的投稿。'
+        };
+        grid.innerHTML = `<p class="screen-empty">${emptyCopy[filter]}</p>`;
+        return;
+      }
+
+      grid.innerHTML = visible.map(cardHtml).join('');
+    }
+
+    function cardHtml(item) {
+      const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
+      const name = item.name ? escapeHtml(item.name) : 'No name 未署名';
+      const message = item.mediaUrl && item.message ? `<p class="screen-copy">${escapeHtml(item.message)}</p>` : '';
+      let preview = `<div class="screen-text">${escapeHtml(item.message || 'No message')}</div>`;
+      if (item.mediaUrl) {
+        preview = item.mediaType === 'video'
+          ? `<div class="screen-media"><video src="${escapeAttribute(item.mediaUrl)}" muted playsinline controls></video></div>`
+          : `<div class="screen-media"><img src="${escapeAttribute(item.mediaUrl)}" alt="Submission from ${escapeAttribute(item.name || 'participant')}"></div>`;
+      }
+
+      const show = item.status === 'approved'
+        ? ''
+        : '<button class="screen-action screen-action-show" type="button" data-action="approve">Show on wall 展示</button>';
+      const hide = item.status === 'hidden'
+        ? ''
+        : '<button class="screen-action screen-action-hide" type="button" data-action="hide">Hide 隱藏</button>';
+
+      return `<article class="screen-card" data-id="${escapeAttribute(item.id)}">
+        ${preview}
+        ${message}
+        <p class="screen-meta">${name}<br>${escapeHtml(when)}</p>
+        <div class="screen-actions">
+          ${show}
+          ${hide}
+          <button class="screen-action screen-action-delete" type="button" data-action="delete">Delete 刪除</button>
+        </div>
+      </article>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>'"]/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[character]));
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+
+    if (moderatorKey && eventId) loadSubmissions();
+    setInterval(() => {
+      if (!busy && moderatorKey && !app.classList.contains('hidden')) loadSubmissions();
+    }, 5000);
+  </script>
+</body>
+</html>

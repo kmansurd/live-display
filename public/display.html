@@ -14,7 +14,7 @@
     </h1>
   </header>
   <main class="display-stage" id="display-stage">
-    <div class="empty-state"><strong>Waiting for the first share.</strong><span>Scan the event QR code to add something to the wall.</span></div>
+    <div class="empty-state"><strong>Waiting for approved submissions.</strong><span>Photos and messages appear here after they are screened.</span></div>
   </main>
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -35,6 +35,10 @@
       if (eventId) socket.emit('event:join', { eventId });
     });
 
+    socket.on('event:joined', ({ submissions }) => {
+      replacePlaylist(submissions || []);
+    });
+
     socket.on('event:error', ({ error }) => {
       stage.innerHTML = `<div class="empty-state"><strong>Unable to join event.</strong><span>${escapeHtml(error)}</span></div>`;
     });
@@ -44,24 +48,58 @@
       if (!showing) showNext();
     });
 
-    if (eventId) {
-      fetch(`/api/submissions?event=${encodeURIComponent(eventId)}`)
-        .then(async (response) => {
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || 'Unable to load submissions.');
-          return result;
-        })
-        .then(({ submissions }) => {
-          submissions.forEach(addSubmission);
-          if (!showing) showNext();
-        })
-        .catch((error) => {
-          stage.innerHTML = `<div class="empty-state"><strong>Unable to load event.</strong><span>${escapeHtml(error.message)}</span></div>`;
-        });
+    socket.on('submission:removed', ({ id }) => {
+      removeSubmission(id);
+    });
+
+    function replacePlaylist(submissions) {
+      clearTimeout(slideTimer);
+      playlist.length = 0;
+      showing = false;
+      currentIndex = 0;
+      submissions.forEach(addSubmission);
+      if (playlist.length) showNext();
+      else showEmptyWall();
     }
 
     function addSubmission(submission) {
       if (!playlist.some((item) => item.id === submission.id)) playlist.push(submission);
+    }
+
+    function visibleIndex() {
+      if (!playlist.length) return -1;
+      return (currentIndex - 1 + playlist.length) % playlist.length;
+    }
+
+    function showEmptyWall() {
+      clearTimeout(slideTimer);
+      showing = false;
+      currentIndex = 0;
+      stage.innerHTML = '<div class="empty-state"><strong>Waiting for approved submissions.</strong><span>Photos and messages appear here after they are screened.</span></div>';
+    }
+
+    function removeSubmission(id) {
+      const index = playlist.findIndex((item) => item.id === id);
+      if (index < 0) return;
+
+      const visibleId = playlist[visibleIndex()]?.id;
+      playlist.splice(index, 1);
+      document.querySelector(`#ig-track [data-id="${CSS.escape(String(id))}"]`)?.remove();
+
+      if (!playlist.length) {
+        showEmptyWall();
+        return;
+      }
+
+      if (visibleId === id) {
+        currentIndex = Math.min(index, playlist.length - 1);
+        showNext();
+        return;
+      }
+
+      const nextVisible = playlist.findIndex((item) => item.id === visibleId);
+      currentIndex = (nextVisible + 1) % playlist.length;
+      showSlide(nextVisible);
     }
 
     function showNext() {
