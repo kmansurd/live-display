@@ -72,7 +72,7 @@ function saveModeration() {
 }
 
 function statusFor(id) {
-  return moderation.items[id] || 'pending';
+  return moderation.items[id] === 'hidden' ? 'hidden' : 'approved';
 }
 
 function setStatus(id, status) {
@@ -128,6 +128,16 @@ function requireModerator(request, response) {
 
 async function seedExistingSubmissions() {
   loadModeration();
+
+  let changed = false;
+  for (const [id, status] of Object.entries(moderation.items)) {
+    if (status === 'pending') {
+      moderation.items[id] = 'approved';
+      changed = true;
+    }
+  }
+  if (changed) saveModeration();
+
   if (moderation.seeded) return;
 
   const { data, error } = await supabase.from('submissions').select('id');
@@ -267,10 +277,10 @@ app.post('/api/submissions', submissionLimiter, upload.single('media'), async (r
       throw new Error(`Unable to save submission: ${databaseError.message}`);
     }
 
-    setStatus(id, 'pending');
+    setStatus(id, 'approved');
 
-    const submission = toSubmission(row, true);
-
+    const submission = toSubmission(row);
+    io.to(eventId).emit('submission:new', submission);
     return response.status(201).json({ submission });
   } catch (error) {
     return next(error);

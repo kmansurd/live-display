@@ -9,9 +9,9 @@
 <body class="screen-page">
   <main class="screen-shell">
     <p class="screen-kicker">Staff only · 工作人員專用</p>
-    <h1 class="screen-title">Screen the wall</h1>
-    <p class="screen-intro">Review every submission. Show the ones that belong on the display, or hide and delete anything already on the wall.</p>
-    <p class="screen-intro">審核所有投稿。把適合的內容放到互動牆，或隱藏、刪除已在展示中的內容。</p>
+    <h1 class="screen-title">On the wall</h1>
+    <p class="screen-intro">These submissions are showing now. Hide one to take it off the display, or delete it for good.</p>
+    <p class="screen-intro">以下投稿正在展示。可隱藏以把它移出互動牆，或永久刪除。</p>
 
     <form class="screen-gate" id="screen-gate">
       <label for="moderator-key">Screening password 審核密碼</label>
@@ -21,11 +21,6 @@
     </form>
 
     <section id="screen-app" class="hidden">
-      <div class="screen-toolbar" role="tablist" aria-label="Submission groups">
-        <button class="screen-tab is-active" type="button" data-filter="pending">Waiting <span id="count-pending">0</span></button>
-        <button class="screen-tab" type="button" data-filter="approved">On the wall <span id="count-approved">0</span></button>
-        <button class="screen-tab" type="button" data-filter="hidden">Hidden <span id="count-hidden">0</span></button>
-      </div>
       <p class="status" id="screen-status" role="status"></p>
       <div class="screen-grid" id="screen-grid"></div>
     </section>
@@ -42,7 +37,6 @@
 
     let moderatorKey = sessionStorage.getItem(storageKey) || '';
     let submissions = [];
-    let filter = 'pending';
     let busy = false;
 
     if (!eventId || !/^[a-z0-9-]{3,80}$/.test(eventId)) {
@@ -58,16 +52,6 @@
       gateStatus.textContent = 'Checking…';
       const ok = await loadSubmissions();
       if (ok) sessionStorage.setItem(storageKey, moderatorKey);
-    });
-
-    document.querySelectorAll('.screen-tab').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        filter = tab.dataset.filter;
-        document.querySelectorAll('.screen-tab').forEach((item) => {
-          item.classList.toggle('is-active', item === tab);
-        });
-        render();
-      });
     });
 
     grid.addEventListener('click', async (event) => {
@@ -97,8 +81,7 @@
           return;
         }
         if (!response.ok) throw new Error(result.error || 'Unable to update submission.');
-        if (action === 'delete') submissions = submissions.filter((item) => item.id !== id);
-        else submissions = submissions.map((item) => item.id === id ? result.submission : item);
+        submissions = submissions.filter((item) => item.id !== id);
         screenStatus.textContent = '';
         render();
       } catch (error) {
@@ -136,7 +119,7 @@
           return false;
         }
         if (!response.ok) throw new Error(result.error || 'Unable to load submissions.');
-        submissions = result.submissions;
+        submissions = result.submissions.filter((item) => item.status === 'approved');
         showApp();
         render();
         return true;
@@ -153,26 +136,12 @@
     }
 
     function render() {
-      const counts = { pending: 0, approved: 0, hidden: 0 };
-      submissions.forEach((item) => {
-        if (counts[item.status] !== undefined) counts[item.status] += 1;
-      });
-      document.querySelector('#count-pending').textContent = counts.pending;
-      document.querySelector('#count-approved').textContent = counts.approved;
-      document.querySelector('#count-hidden').textContent = counts.hidden;
-
-      const visible = submissions.filter((item) => item.status === filter);
-      if (!visible.length) {
-        const emptyCopy = {
-          pending: 'Nothing is waiting for review. 沒有待審核的投稿。',
-          approved: 'Nothing is on the wall yet. 互動牆暫時未有展示內容。',
-          hidden: 'Nothing is hidden. 沒有已隱藏的投稿。'
-        };
-        grid.innerHTML = `<p class="screen-empty">${emptyCopy[filter]}</p>`;
+      if (!submissions.length) {
+        grid.innerHTML = '<p class="screen-empty">Nothing is on the wall yet. 互動牆暫時未有展示內容。</p>';
         return;
       }
 
-      grid.innerHTML = visible.map(cardHtml).join('');
+      grid.innerHTML = submissions.map(cardHtml).join('');
     }
 
     function cardHtml(item) {
@@ -186,20 +155,12 @@
           : `<div class="screen-media"><img src="${escapeAttribute(item.mediaUrl)}" alt="Submission from ${escapeAttribute(item.name || 'participant')}"></div>`;
       }
 
-      const show = item.status === 'approved'
-        ? ''
-        : '<button class="screen-action screen-action-show" type="button" data-action="approve">Show on wall 展示</button>';
-      const hide = item.status === 'hidden'
-        ? ''
-        : '<button class="screen-action screen-action-hide" type="button" data-action="hide">Hide 隱藏</button>';
-
       return `<article class="screen-card" data-id="${escapeAttribute(item.id)}">
         ${preview}
         ${message}
         <p class="screen-meta">${name}<br>${escapeHtml(when)}</p>
         <div class="screen-actions">
-          ${show}
-          ${hide}
+          <button class="screen-action screen-action-hide" type="button" data-action="hide">Hide 隱藏</button>
           <button class="screen-action screen-action-delete" type="button" data-action="delete">Delete 刪除</button>
         </div>
       </article>`;

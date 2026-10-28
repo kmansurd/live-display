@@ -14,7 +14,7 @@
     </h1>
   </header>
   <main class="display-stage" id="display-stage">
-    <div class="empty-state"><strong>Waiting for approved submissions.</strong><span>Photos and messages appear here after they are screened.</span></div>
+    <div class="empty-state"><strong>Waiting for the first share.</strong><span>Scan the event QR code to add something to the wall.</span></div>
   </main>
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -75,7 +75,7 @@
       clearTimeout(slideTimer);
       showing = false;
       currentIndex = 0;
-      stage.innerHTML = '<div class="empty-state"><strong>Waiting for approved submissions.</strong><span>Photos and messages appear here after they are screened.</span></div>';
+      stage.innerHTML = '<div class="empty-state"><strong>Waiting for the first share.</strong><span>Scan the event QR code to add something to the wall.</span></div>';
     }
 
     function removeSubmission(id) {
